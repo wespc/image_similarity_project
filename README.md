@@ -17,7 +17,7 @@ This project trains a **Siamese Neural Network** to learn image similarity using
 ### 1. Clone the project
 
 ```bash
-git clone https://github.com/yourusername/image_similarity_project.git
+git clone https://github.com/wespc/image_similarity_project.git
 cd image_similarity_project
 ```
 
