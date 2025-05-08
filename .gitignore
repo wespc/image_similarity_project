@@ -1,0 +1,30 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*.so
+
+# Virtual environment
+venv/
+ENV/
+.env/
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# PyTorch model weights
+*.pt
+*.pth
+
+# Matplotlib and other output images
+*.png
+*.jpg
+*.jpeg
+
+# Logs
+*.log
+
+# VSCode settings (optional)
+.vscode/
+
+# MacOS specific
+.DS_Store
