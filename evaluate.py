@@ -1,53 +1,87 @@
+import argparse
 import torch
-from torchvision import datasets, transforms
+import torchvision
+from torchvision import transforms
 from torch.utils.data import DataLoader
+from data.pair_dataset import SiameseDataset
+from models.siamese import SimpleSiameseNetwork, EnhancedSiameseNetwork
+from config import get_config
 import matplotlib.pyplot as plt
-from models.encoder import Encoder
-from models.siamese import SiameseNet
-from data.pair_dataset import PairDataset
+import os
 
-# Load the trained model (Load the most recent model or any saved model)
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-encoder = Encoder()
-model = SiameseNet(encoder).to(device)
-model.load_state_dict(torch.load("siamese_mnist_epoch_10.pth"))  # Load model from a specific epoch
-model.eval()
 
-# Define transform
-transform = transforms.Compose([
-    transforms.Grayscale(),
-    transforms.Resize((28, 28)),
-    transforms.ToTensor()
-])
+def infer_dataset_from_path(path):
+    path_lower = path.lower()
+    if 'mnist' in path_lower:
+        return 'mnist'
+    elif 'cifar' in path_lower:
+        return 'cifar'
+    else:
+        raise ValueError("Cannot infer dataset from model filename. Please include 'mnist' or 'cifar' in the filename.")
 
-# Load dataset
-dataset = datasets.MNIST(root='./data', train=True, download=True, transform=transform)
-pair_dataset = PairDataset(dataset)
-dataloader = DataLoader(pair_dataset, batch_size=1, shuffle=True)
 
-# Function to plot image pair and their similarity
-def plot_image_pair(img1, img2, label, dist):
-    fig, axes = plt.subplots(1, 2, figsize=(8, 4))
-    axes[0].imshow(img1.squeeze(), cmap='gray')
-    axes[0].set_title("Image 1")
-    axes[0].axis('off')
-    
-    axes[1].imshow(img2.squeeze(), cmap='gray')
-    axes[1].set_title("Image 2")
-    axes[1].axis('off')
-    
-    plt.suptitle(f"Label: {label.item()} | Distance: {dist:.4f}")
-    plt.show()
+def prepare_image_for_plot(img_tensor):
+    img = img_tensor.squeeze().cpu()
+    if img.dim() == 2:
+        return img.numpy(), 'gray'
+    elif img.dim() == 3:
+        return img.permute(1, 2, 0).numpy(), None
+    else:
+        raise ValueError("Unsupported image shape")
 
-# Evaluate a few pairs
-for i, (img1, img2, label) in enumerate(dataloader):
-    if i == 5:  # Limit to 5 pairs
-        break
 
-    img1, img2 = img1.to(device), img2.to(device)
-    out1, out2 = model(img1, img2)
-    
-    # Calculate Euclidean distance between the outputs
-    dist = torch.nn.functional.pairwise_distance(out1, out2)
-    
-    plot_image_pair(img1.cpu(), img2.cpu(), label, dist.item())
+def visualize_predictions(model, dataloader, device, num_samples=5):
+    model.eval()
+    samples_shown = 0
+    with torch.no_grad():
+        for img1, img2, label in dataloader:
+            img1, img2, label = img1.to(device), img2.to(device), label.to(device)
+            out1, out2 = model(img1, img2)
+            euclidean_distance = torch.norm(out1 - out2, dim=1)
+            for i in range(len(label)):
+                if samples_shown >= num_samples:
+                    return
+                img1_np, cmap1 = prepare_image_for_plot(img1[i])
+                img2_np, cmap2 = prepare_image_for_plot(img2[i])
+
+                plt.figure(figsize=(4, 2))
+                plt.subplot(1, 2, 1)
+                plt.imshow(img1_np, cmap=cmap1)
+                plt.axis('off')
+                plt.subplot(1, 2, 2)
+                plt.imshow(img2_np, cmap=cmap2)
+                plt.axis('off')
+                plt.suptitle(
+                    f"Label: {'Same' if label[i]==0 else 'Different'}, "
+                    f"Distance: {euclidean_distance[i]:.2f}"
+                )
+                plt.show()
+                samples_shown += 1
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--model-path', type=str, required=True)
+    parser.add_argument('--num-samples', type=int, default=5)
+    args = parser.parse_args()
+
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    dataset_name = infer_dataset_from_path(args.model_path)
+    config = get_config(dataset_name)
+
+    if dataset_name == 'mnist':
+        transform = transforms.Compose([transforms.ToTensor()])
+        raw_dataset = torchvision.datasets.MNIST(root='./data', train=False, download=True, transform=transform)
+        model = SimpleSiameseNetwork(config['in_channels']).to(device)
+    else:
+        transform = transforms.Compose([transforms.ToTensor()])
+        raw_dataset = torchvision.datasets.CIFAR10(root='./data', train=False, download=True, transform=transform)
+        model = EnhancedSiameseNetwork(config['in_channels']).to(device)
+
+    model.load_state_dict(torch.load(args.model_path, map_location=device))
+    model.eval()
+
+    siamese_dataset = SiameseDataset(raw_dataset)
+    loader = DataLoader(siamese_dataset, batch_size=config['batch_size'], shuffle=True)
+
+    visualize_predictions(model, loader, device, num_samples=args.num_samples)

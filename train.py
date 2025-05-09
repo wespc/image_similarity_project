@@ -1,61 +1,69 @@
+import os
+from datetime import datetime
+import argparse
 import torch
+import torch.nn as nn
+import torch.optim as optim
 from torch.utils.data import DataLoader
-from torchvision import datasets, transforms
-from models.encoder import Encoder
-from models.siamese import SiameseNet
-from data.pair_dataset import PairDataset
+from torchvision import transforms, datasets
+from models.siamese import SimpleSiameseNetwork, EnhancedSiameseNetwork
 from utils.loss import contrastive_loss
-import config
-import matplotlib.pyplot as plt  # Importing matplotlib for plotting
+from data.pair_dataset import SiameseDataset
+from config import get_config
+import matplotlib.pyplot as plt
 
-# Define transform
-transform = transforms.Compose([
-    transforms.Grayscale(),
-    transforms.Resize((28, 28)),
-    transforms.ToTensor()
-])
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--dataset', choices=['mnist', 'cifar'], default='mnist')
+    args = parser.parse_args()
 
-# Load dataset and dataloader
-dataset = datasets.MNIST(root='./data', train=True, download=True, transform=transform)
-pair_dataset = PairDataset(dataset)
-dataloader = DataLoader(pair_dataset, batch_size=config.BATCH_SIZE, shuffle=True)
+    config = get_config(args.dataset)
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-# Model setup
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-encoder = Encoder()
-model = SiameseNet(encoder).to(device)
-optimizer = torch.optim.Adam(model.parameters(), lr=config.LEARNING_RATE)
+    if args.dataset == 'mnist':
+        transform = transforms.Compose([transforms.ToTensor()])
+        dataset = datasets.MNIST(root='./data', train=True, download=True, transform=transform)
+        model = SimpleSiameseNetwork(config['in_channels']).to(device)
+    else:
+        transform = transforms.Compose([transforms.ToTensor()])
+        dataset = datasets.CIFAR10(root='./data', train=True, download=True, transform=transform)
+        model = EnhancedSiameseNetwork(config['in_channels']).to(device)
 
-# List to store the loss for plotting
-losses = []
+    siamese_dataset = SiameseDataset(dataset)
+    loader = DataLoader(siamese_dataset, batch_size=config['batch_size'], shuffle=True)
 
-# Training loop
-for epoch in range(config.EPOCHS):
+    optimizer = optim.Adam(model.parameters(), lr=config['lr'])
     model.train()
-    total_loss = 0
-    for img1, img2, label in dataloader:
-        img1, img2, label = img1.to(device), img2.to(device), label.to(device)
-        out1, out2 = model(img1, img2)
-        loss = contrastive_loss(out1, out2, label)
 
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
+    loss_history = []
 
-        total_loss += loss.item()
+    for epoch in range(config['epochs']):
+        total_loss = 0
+        for img1, img2, label in loader:
+            img1, img2, label = img1.to(device), img2.to(device), label.to(device)
+            out1, out2 = model(img1, img2)
+            loss = contrastive_loss(out1, out2, label)
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+            total_loss += loss.item()
 
-    avg_loss = total_loss / len(dataloader)
-    losses.append(avg_loss)
-    print(f"Epoch {epoch+1}/{config.EPOCHS}, Loss: {avg_loss:.4f}")
+        avg_loss = total_loss / len(loader)
+        loss_history.append(avg_loss)
+        print(f"Epoch {epoch+1}, Loss: {avg_loss:.4f}")
+        
+        os.makedirs("checkpoints", exist_ok=True)
+        torch.save({
+            'epoch': epoch + 1,
+            'model_state_dict': model.state_dict(),
+            'optimizer_state_dict': optimizer.state_dict(),
+            'loss': avg_loss,
+        }, f"checkpoints/siamese_mnist_epoch_{epoch+1}.pt")
+    
 
-    # Save the model every epoch (or choose a specific frequency)
-    torch.save(model.state_dict(), f"siamese_mnist_epoch_{epoch+1}.pth")
-
-# Plot the training loss curve
-plt.figure(figsize=(10, 6))
-plt.plot(range(1, config.EPOCHS + 1), losses, marker='o')
-plt.title('Training Loss Curve')
-plt.xlabel('Epochs')
-plt.ylabel('Loss')
-plt.grid(True)
-plt.show()
+    plt.plot(loss_history)
+    plt.title("Training Loss")
+    plt.xlabel("Epoch")
+    plt.ylabel("Loss")
+    plt.savefig(f"loss_curve_{args.dataset}.png")
+    print("Training completed and loss curve saved.")
