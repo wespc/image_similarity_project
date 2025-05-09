@@ -3,10 +3,11 @@ __pycache__/
 *.py[cod]
 *.so
 
-# Virtual environment
+# Virtual environments
 venv/
 ENV/
 .env/
+.venv/
 
 # Jupyter Notebook checkpoints
 .ipynb_checkpoints/
@@ -23,8 +24,23 @@ ENV/
 # Logs
 *.log
 
-# VSCode settings (optional)
+# VSCode settings
 .vscode/
 
-# MacOS specific
+# macOS system files
 .DS_Store
+
+# CIFAR dataset archive (explicit)
+data/cifar-10-python.tar.gz
+
+# Ignore all tar.gz files (catch-all)
+*.tar.gz
+
+# MNIST raw data
+data/MNIST/raw/
+
+# Dataset-related temporary or raw files
+*.zip
+*.npz
+*.csv
+*.tsv
