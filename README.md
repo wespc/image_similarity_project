@@ -1,70 +1,6 @@
 # Image Similarity with Siamese Network
 
-This project trains a **Siamese Neural Network** to learn image similarity using the MNIST dataset. It is designed to work smoothly on **macOS with Apple Silicon (M1/M2)**, and focuses on clean modularity, visualization, and reproducibility.
-
----
-
-## ✅ Supported Environment
-
-* macOS 11.0 or higher (Apple M1 / M2 chip)
-* Python 3.10 or higher
-* Virtual environment recommended (e.g. `venv` or `conda`)
-
----
-
-## 🔧 Installation Steps
-
-### 1. Clone the project
-
-```bash
-git clone https://github.com/wespc/image_similarity_project.git
-cd image_similarity_project
-```
-
-### 2. Create and activate virtual environment
-
-```bash
-python3 -m venv venv
-source venv/bin/activate  # For macOS/Linux
-```
-
-### 3. Install dependencies using `requirements.txt`
-
-Use the following command **to avoid compatibility errors on macOS M1**:
-
-```bash
-pip install -r requirements.txt --extra-index-url https://download.pytorch.org/whl/cpu
-```
-
-> ⚠️ Do **not** use `--index-url`, as it replaces the default PyPI and will cause packages like `matplotlib` to fail. Use `--extra-index-url` instead.
-
----
-
-## 🚀 How to Run the Project
-
-### Step 1: Train the model
-
-```bash
-python train.py
-```
-
-This will:
-
-* Train the Siamese network
-* Save model weights at each epoch
-* Plot the training loss curve
-
-### Step 2: Evaluate and visualize
-
-```bash
-python evaluate.py
-```
-
-This will:
-
-* Load the trained model weights
-* Show a few pairs of images
-* Display predicted similarity (distance) and ground truth label
+This project trains a Siamese neural network to compute similarity between pairs of images using either the MNIST or CIFAR-10 datasets.
 
 ---
 
@@ -72,55 +8,90 @@ This will:
 
 ```
 image_similarity_project/
-│
-├── config.py                  # Training configuration
-├── train.py                   # Training loop with loss plotting and model saving
-├── evaluate.py                # Visualize image pairs and model predictions
-│
+├── train.py                 # Train the Siamese model
+├── evaluate.py              # Evaluate and visualize predictions
+├── config.py                # Dataset-specific settings
+├── requirements.txt         # Python dependencies
+├── README.md                # Project documentation
 ├── models/
-│   ├── encoder.py             # CNN encoder definition
-│   └── siamese.py             # Siamese network wrapper
-│
-├── data/
-│   └── pair_dataset.py        # Dataset for generating image pairs
-│
+│   ├── siamese.py           # Simple and enhanced Siamese networks
+│   └── encoder.py           # Optional encoder module
 ├── utils/
-│   └── loss.py                # Contrastive loss function
-│
-├── requirements.txt           # Required packages (for Apple Silicon)
-└── README.md                  # Project instructions
+│   └── loss.py              # Contrastive loss function
+├── data/
+│   └── pair_dataset.py      # Dataset wrapper for paired image inputs
 ```
 
 ---
 
-## 📦 requirements.txt (for Apple M1/M2)
+## ⚙️ Environment Setup
 
-```txt
-torch
-torchvision
-torchaudio
-matplotlib
-numpy
-tqdm
-```
-
-To install:
+We strongly recommend using a virtual environment.
 
 ```bash
-pip install -r requirements.txt --extra-index-url https://download.pytorch.org/whl/cpu
+# Create and activate virtual environment (Mac/Linux)
+python3 -m venv venv
+source venv/bin/activate
+
+# On Windows
+python -m venv venv
+venv\\Scripts\\activate
 ```
 
 ---
 
-## ✨ Features
+## 📦 Install Dependencies
 
-* Siamese Network with contrastive loss
-* Support for visualizing training loss
-* Evaluate similarity predictions with example image pairs
-* Fully compatible with macOS M1/M2 chip
+> ✅ Includes CPU-only compatible versions for M1 Macs
+
+```bash
+pip install -r requirements.txt
+```
+
+If `matplotlib` or others fail from `pytorch.org`, you can try:
+
+```bash
+pip install matplotlib
+```
 
 ---
 
-## 📬 Contact
+## 🚀 Training the Model
 
-If you have questions or ideas, feel free to open an issue or pull request!
+Run training using either MNIST or CIFAR-10:
+
+```bash
+python train.py --dataset mnist
+python train.py --dataset cifar
+```
+
+- Models will be saved as: `model_<dataset>_epoch_<n>.pt`
+- Loss curves will be saved as: `loss_curve_<dataset>.png`
+
+---
+
+## 📊 Evaluating the Model
+
+The evaluation script automatically infers dataset from the model filename.
+
+```bash
+python evaluate.py --model-path model_mnist_epoch_10.pt --num-samples 5
+python evaluate.py --model-path model_cifar_epoch_20.pt
+```
+
+---
+
+## 📌 Key Features
+
+- Siamese architecture for image pair similarity
+- `SimpleSiameseNetwork` for MNIST, `EnhancedSiameseNetwork` for CIFAR
+- Automatic inference of dataset from model path
+- Configurable learning rates, batch size, and architecture via `config.py`
+- Visualization of predicted similarity between image pairs
+
+---
+
+## 🧠 Author Notes
+
+- Ensure the model filename contains either `mnist` or `cifar` for evaluation.
+- Use larger models and data augmentation for more robust CIFAR performance.
