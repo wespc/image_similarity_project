@@ -75,8 +75,8 @@ python train.py --dataset cifar
 The evaluation script automatically infers dataset from the model filename.
 
 ```bash
-python evaluate.py --model-path model_mnist_epoch_10.pt --num-samples 5
-python evaluate.py --model-path model_cifar_epoch_20.pt
+python evaluate.py --model-path checkpoints/siamese_mnist_epoch_10.pt --num-samples 5
+python evaluate.py --model-path checkpoints/siamese_cifar_epoch_10.pt --num-samples 5
 ```
 
 ---

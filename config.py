@@ -13,7 +13,7 @@ def get_config(dataset):
             'in_channels': 3,
             'batch_size': 32,
             'lr': 0.0005,
-            'epochs': 20,
+            'epochs': 10,
             'transform': 'cifar',
             'model_type': 'enhanced'
         }

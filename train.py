@@ -58,7 +58,7 @@ if __name__ == '__main__':
             'model_state_dict': model.state_dict(),
             'optimizer_state_dict': optimizer.state_dict(),
             'loss': avg_loss,
-        }, f"checkpoints/siamese_mnist_epoch_{epoch+1}.pt")
+        }, f"checkpoints/siamese_{args.dataset}_epoch_{epoch+1}.pt")
     
 
     plt.plot(loss_history)

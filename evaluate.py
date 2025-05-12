@@ -78,7 +78,11 @@ if __name__ == '__main__':
         raw_dataset = torchvision.datasets.CIFAR10(root='./data', train=False, download=True, transform=transform)
         model = EnhancedSiameseNetwork(config['in_channels']).to(device)
 
-    model.load_state_dict(torch.load(args.model_path, map_location=device))
+    checkpoint = torch.load(args.model_path, map_location=device)
+    if 'model_state_dict' in checkpoint:
+        model.load_state_dict(checkpoint['model_state_dict'])
+    else:
+        model.load_state_dict(checkpoint)
     model.eval()
 
     siamese_dataset = SiameseDataset(raw_dataset)
